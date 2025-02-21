@@ -17,7 +17,7 @@ obstacles = [
     pygame.Rect(500, 400, 50, 100)
 ]
 
-enemies = []
+enemies = [Enemy(200, 200, 50, 50)]
 speed_powerup = Speed_Powerup(210, 100, 20)
 shield_powerup = Shield_Powerup(170, 100, 20)
 attack_powerup = Attack_Powerup(130, 100, 20)
@@ -44,10 +44,12 @@ while run:
         if event.type == pygame.QUIT:
             run = False
 
-    player_input(player, obstacles)
+    player_input(player, obstacles, enemies)
 
     for enemy in enemies:
         enemy.move(player, obstacles)
+        if not enemy.alive:
+            enemies.remove(enemy)
 
     camera_offset = get_camera_offset(player.rect)
 

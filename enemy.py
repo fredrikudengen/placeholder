@@ -15,8 +15,8 @@ class Enemy:
 
     def move(self, player, obstacles,):
         if self.hit_timer == None:  
-            x_needed_to_move = 425 - self.rect.x
-            y_needed_to_move = 325 - self.rect.y
+            x_needed_to_move = player.rect.x - self.rect.x
+            y_needed_to_move = player.rect.y - self.rect.y
 
             if x_needed_to_move > 0:
                 self.rect.x += ENEMY_SPEED
