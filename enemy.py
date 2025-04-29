@@ -40,7 +40,7 @@ class Enemy:
 
         if self.health <= 0:
             self.alive = False
-        
+                
         if self.hit:
             self.hit_timer = pygame.time.get_ticks()
             self.hit = False
@@ -55,5 +55,6 @@ class Enemy:
                 return True
         return False
 
-    def draw(self, screen):
-        pygame.draw.rect(screen, self.color, self.rect)
+    def draw(self, screen, camera):
+        draw_rect = camera.apply(self.rect)
+        pygame.draw.rect(screen, self.color, draw_rect)

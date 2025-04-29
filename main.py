@@ -4,6 +4,8 @@ from enemy import Enemy
 from power_up import *
 from constants import *
 from gamecontroller import player_input
+from camera import Camera
+
 
 pygame.init()
 
@@ -11,6 +13,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pygame.time.Clock()
 
 player = Player(400, 300, 50, 50)
+camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
 
 obstacles = [
     pygame.Rect(300, 200, 100, 50),
@@ -18,9 +21,12 @@ obstacles = [
 ]
 
 enemies = [Enemy(200, 200, 50, 50)]
-speed_powerup = Speed_Powerup(210, 100, 20)
-shield_powerup = Shield_Powerup(170, 100, 20)
-attack_powerup = Attack_Powerup(130, 100, 20)
+
+powerups = [
+    Speed_Powerup(210, 100, 20), 
+    Shield_Powerup(170, 100, 20),
+    Attack_Powerup(130, 100, 20)
+]
 
 def draw_with_offset(rect, color, offset, surface):
     draw_rect = pygame.Rect(
@@ -44,50 +50,31 @@ while run:
         if event.type == pygame.QUIT:
             run = False
 
+    player.update_buffs()
+
     player_input(player, obstacles, enemies)
+    
+    camera.update(player.rect)
 
     for enemy in enemies:
         enemy.move(player, obstacles)
+        enemy.draw(screen, camera)
         if not enemy.alive:
             enemies.remove(enemy)
 
-    camera_offset = get_camera_offset(player.rect)
-
     for obstacle in obstacles:
-        draw_with_offset(obstacle, (128, 128, 128), camera_offset, screen)
+        screen_rect = camera.apply(obstacle)
+        pygame.draw.rect(screen, (128,128,128), screen_rect)
+        
+    for pu in powerups:
+        if player.rect.colliderect(pu.rect):
+            pu.apply(player)
+            powerups.remove(pu)
+        else:
+            pu.draw(screen, camera)
 
-    for enemy in enemies:
-        draw_with_offset(enemy.rect, enemy.color, camera_offset, screen)
-
-    if speed_powerup:
-        offset_rect = pygame.Rect(
-            speed_powerup.rect.x - camera_offset[0],
-            speed_powerup.rect.y - camera_offset[1],
-            speed_powerup.rect.width,
-            speed_powerup.rect.height
-        )
-        pygame.draw.rect(screen, speed_powerup.color, offset_rect)
-
-    if attack_powerup:
-        offset_rect = pygame.Rect(
-            attack_powerup.rect.x - camera_offset[0],
-            attack_powerup.rect.y - camera_offset[1],
-            attack_powerup.rect.width,
-            attack_powerup.rect.height
-        )
-        pygame.draw.rect(screen, attack_powerup.color, offset_rect)
+    player.draw(screen, camera)
     
-    if shield_powerup:
-        offset_rect = pygame.Rect(
-            shield_powerup.rect.x - camera_offset[0],
-            shield_powerup.rect.y - camera_offset[1],
-            shield_powerup.rect.width,
-            shield_powerup.rect.height
-        )
-        pygame.draw.rect(screen, shield_powerup.color, offset_rect)
-
-    draw_with_offset(player.rect, player.color, camera_offset, screen)
-
     pygame.display.update()
     clock.tick(60)
 

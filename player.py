@@ -13,6 +13,7 @@ class Player:
         self.alive = ALIVE
         self.attack_timer = None
         self.playerAttack = False
+        self.buff_timers = BUFF_DURATIONS
     
     def check_collision_obstacle(self, obstacles):
         for obstacle in obstacles:
@@ -26,9 +27,35 @@ class Player:
                 return True
         return False
     
-    def draw(self, screen):
-        if self.playerAttack:
-            pygame.draw.rect(screen, RED, self.rect)
-        else:
-            pygame.draw.rect(screen, self.color, self.rect)
+    def apply_buff(self, powerup):
+        if powerup == 'speed_boost':
+            self.speed += 3
+        elif powerup == 'shield_boost':
+            self.health += 2
+        elif powerup == 'attack_boost':
+            self.dps += 1
+    
+    def update_buffs(self):
+        now = pygame.time.get_ticks()
+        expired = []
+        for name, start in self.buff_timers.items():
+            duration = BUFF_DURATIONS.get(name, 0)
+            if now - start >= duration:
+                expired.append(name)
+
+        # Fjern effekt
+        for name in expired:
+            if name == 'speed_boost':
+                self.speed -= 3
+            elif name == 'attack_boost':
+                self.dps -= 1
+            elif name == 'shield_boost':
+                self.health -= 2
+                
+            self.buff_timers.pop(name)
+
+    def draw(self, screen, camera):
+        draw_rect = camera.apply(self.rect)
+        color = RED if self.playerAttack else self.color
+        pygame.draw.rect(screen, color, draw_rect)
 

@@ -19,3 +19,11 @@ PLAYER_DPS = 1
 PLAYER_HEALTH = 5
 ALIVE = True
 PLAYER_COLOR = (255, 255, 255)
+
+# constants.py
+BUFF_DURATIONS = {
+    'speed_boost': 5000,   # 5 sekunder
+    'attack_boost': 7000,  # 7 sekunder
+    'shield': 10000        # 10 sekunder
+}
+
