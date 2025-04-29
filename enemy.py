@@ -13,7 +13,7 @@ class Enemy:
         self.alive = ALIVE
         self.hit = False
 
-    def move(self, player, obstacles,):
+    def move(self, player, obstacles):
         if self.hit_timer == None:  
             x_needed_to_move = player.rect.x - self.rect.x
             y_needed_to_move = player.rect.y - self.rect.y

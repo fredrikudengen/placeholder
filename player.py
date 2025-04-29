@@ -13,7 +13,7 @@ class Player:
         self.alive = ALIVE
         self.attack_timer = None
         self.playerAttack = False
-        self.buff_timers = BUFF_DURATIONS
+        self.buff_timers = {}
     
     def check_collision_obstacle(self, obstacles):
         for obstacle in obstacles:
@@ -30,15 +30,19 @@ class Player:
     def apply_buff(self, powerup):
         if powerup == 'speed_boost':
             self.speed += 3
+            self.buff_timers[powerup] = pygame.time.get_ticks()
         elif powerup == 'shield_boost':
             self.health += 2
+            self.buff_timers[powerup] = pygame.time.get_ticks()
         elif powerup == 'attack_boost':
             self.dps += 1
-    
+            self.buff_timers[powerup] = pygame.time.get_ticks()
+            
     def update_buffs(self):
         now = pygame.time.get_ticks()
         expired = []
-        for name, start in self.buff_timers.items():
+        # list lager en kopi, god stil når man itererer og muterer samtidig
+        for name, start in list(self.buff_timers.items()):
             duration = BUFF_DURATIONS.get(name, 0)
             if now - start >= duration:
                 expired.append(name)

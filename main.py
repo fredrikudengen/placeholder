@@ -1,4 +1,5 @@
 import pygame
+from particle import Particle
 from player import Player
 from enemy import Enemy
 from power_up import *
@@ -28,6 +29,8 @@ powerups = [
     Attack_Powerup(130, 100, 20)
 ]
 
+particles = []
+
 def draw_with_offset(rect, color, offset, surface):
     draw_rect = pygame.Rect(
         rect.x - offset[0],
@@ -56,11 +59,28 @@ while run:
     
     camera.update(player.rect)
 
-    for enemy in enemies:
+    for enemy in enemies[:]:
         enemy.move(player, obstacles)
         enemy.draw(screen, camera)
+
+        # FUNKER IKKE | FIKS
+        if enemy.hit: 
+            for _ in range(5):  # 5 particles
+                particles.append(Particle(enemy.rect.centerx, enemy.rect.centery, (255, 255, 0)))
+        
         if not enemy.alive:
+            for _ in range(10):  # 10 particles ved død
+                particles.append(Particle(enemy.rect.centerx, enemy.rect.centery, (255, 255, 0)))  # Gul effekt
             enemies.remove(enemy)
+
+            
+    if enemy.rect.colliderect(player.rect):
+        player.health -= 1
+        if player.health <= 0:
+            player.alive = False
+            run = False
+            # legge til cooldown
+
 
     for obstacle in obstacles:
         screen_rect = camera.apply(obstacle)
@@ -74,6 +94,15 @@ while run:
             pu.draw(screen, camera)
 
     player.draw(screen, camera)
+    
+    dt = clock.get_time()
+
+    for particle in particles[:]:
+        particle.update(dt)
+        particle.draw(screen, camera)
+        if particle.timer <= 0:
+            particles.remove(particle)
+
     
     pygame.display.update()
     clock.tick(60)
