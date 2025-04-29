@@ -81,6 +81,7 @@ def attack(player, enemy, direction):
     if attack_rect.colliderect(enemy.rect): 
         enemy.health -= player.dps  
         enemy.hit = True  
+        enemy.hit_this_frame = True
         player.playerAttack = True
 
 def check_collision(player, obstacles):

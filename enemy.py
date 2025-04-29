@@ -12,6 +12,7 @@ class Enemy:
         self.health = ENEMY_HEALTH
         self.alive = ALIVE
         self.hit = False
+        self.hit_this_frame = False
 
     def move(self, player, obstacles):
         if self.hit_timer == None:  

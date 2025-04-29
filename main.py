@@ -63,14 +63,14 @@ while run:
         enemy.move(player, obstacles)
         enemy.draw(screen, camera)
 
-        # FUNKER IKKE | FIKS
-        if enemy.hit: 
+        if enemy.hit_this_frame: 
+            print("HIT")
             for _ in range(5):  # 5 particles
-                particles.append(Particle(enemy.rect.centerx, enemy.rect.centery, (255, 255, 0)))
-        
+                particles.append(Particle(enemy.rect.centerx, enemy.rect.centery, YELLOW))
+            enemy.hit_this_frame = False
         if not enemy.alive:
             for _ in range(10):  # 10 particles ved død
-                particles.append(Particle(enemy.rect.centerx, enemy.rect.centery, (255, 255, 0)))  # Gul effekt
+                particles.append(Particle(enemy.rect.centerx, enemy.rect.centery, YELLOW))
             enemies.remove(enemy)
 
             
