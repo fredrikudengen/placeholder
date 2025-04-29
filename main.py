@@ -64,7 +64,6 @@ while run:
         enemy.draw(screen, camera)
 
         if enemy.hit_this_frame: 
-            print("HIT")
             for _ in range(5):  # 5 particles
                 particles.append(Particle(enemy.rect.centerx, enemy.rect.centery, YELLOW))
             enemy.hit_this_frame = False
