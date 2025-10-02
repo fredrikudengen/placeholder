@@ -1,109 +1,64 @@
 import pygame
-from particle import Particle
+import constants
 from player import Player
-from enemy import Enemy
-from power_up import *
-from constants import *
-from gamecontroller import player_input
 from camera import Camera
-
+from gamecontroller import player_input
+from world import World
+from room_manager import RoomManager
 
 pygame.init()
-
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pygame.time.Clock()
 
-player = Player(400, 300, 50, 50)
-camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
+# Skjerm
+screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+screen_width, screen_height = screen.get_size()
 
-obstacles = [
-    pygame.Rect(300, 200, 100, 50),
-    pygame.Rect(500, 400, 50, 100)
-]
+# Spiller & kamera
+player = Player(screen_width // 2, screen_height // 2, 50, 50)
+camera = Camera(screen_width, screen_height)
 
-enemies = [Enemy(200, 200, 50, 50)]
-
-powerups = [
-    Speed_Powerup(210, 100, 20), 
-    Shield_Powerup(170, 100, 20),
-    Attack_Powerup(130, 100, 20)
-]
-
-particles = []
-
-def draw_with_offset(rect, color, offset, surface):
-    draw_rect = pygame.Rect(
-        rect.x - offset[0],
-        rect.y - offset[1],
-        rect.width,
-        rect.height
-    )
-    pygame.draw.rect(surface, color, draw_rect)
-
-def get_camera_offset(player_rect):
-    offset_x = player_rect.centerx - SCREEN_WIDTH // 2
-    offset_y = player_rect.centery - SCREEN_HEIGHT // 2
-    return (offset_x, offset_y)
+# Verden + RoomManager
+world = World()
+room_manager = RoomManager(world, player, camera)
 
 run = True
 while run:
-    screen.fill(BLACK)
-
+    # events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            run = False
 
+    # update
     player.update_buffs()
-
-    player_input(player, obstacles, enemies)
-    
+    player_input(player, world.obstacles, world.enemies)
     camera.update(player.rect)
 
-    for enemy in enemies[:]:
-        enemy.move(player, obstacles)
-        enemy.draw(screen, camera)
+    dt_ms = clock.get_time()
+    world.update(dt_ms, player, camera)
 
-        if enemy.hit_this_frame: 
-            for _ in range(5):  # 5 particles
-                particles.append(Particle(enemy.rect.centerx, enemy.rect.centery, YELLOW))
-            enemy.hit_this_frame = False
-        if not enemy.alive:
-            for _ in range(10):  # 10 particles ved død
-                particles.append(Particle(enemy.rect.centerx, enemy.rect.centery, YELLOW))
-            enemies.remove(enemy)
+    # etter verden – dørlogikk og rombytte
+    room_manager.update()
 
-            
-    if enemy.rect.colliderect(player.rect):
-        player.health -= 1
-        if player.health <= 0:
-            player.alive = False
-            run = False
-            # legge til cooldown
-
-
-    for obstacle in obstacles:
-        screen_rect = camera.apply(obstacle)
-        pygame.draw.rect(screen, (128,128,128), screen_rect)
-        
-    for pu in powerups:
-        if player.rect.colliderect(pu.rect):
-            pu.apply(player)
-            powerups.remove(pu)
-        else:
-            pu.draw(screen, camera)
-
+    # draw
+    screen.fill(constants.BLACK)
+    world.draw(screen, camera)
+    room_manager.draw(screen)  # tegn dører
     player.draw(screen, camera)
-    
-    dt = clock.get_time()
 
-    for particle in particles[:]:
-        particle.update(dt)
-        particle.draw(screen, camera)
-        if particle.timer <= 0:
-            particles.remove(particle)
+    # debug: vis spillerens angrepshitbox
+    if constants.DEBUG_SHOW_HITBOXES and getattr(player, "debug_attack_rect", None):
+        if pygame.time.get_ticks() <= getattr(player, "debug_attack_until", 0):
+            r = player.debug_attack_rect
+            surf = pygame.Surface((r.width, r.height), pygame.SRCALPHA)
+            surf.fill(constants.HITBOX_COLOR_RGBA)
+            ar = camera.apply(r)
+            screen.blit(surf, (ar.x, ar.y))
+        else:
+            player.debug_attack_rect = None
 
-    
-    pygame.display.update()
+    pygame.display.flip()
     clock.tick(60)
 
 pygame.quit()
