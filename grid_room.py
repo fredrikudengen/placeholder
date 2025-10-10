@@ -33,9 +33,15 @@ class GridRoom:
                 elif ch == 'E':
                     self.terrain[y][x] = constants.TILE_FLOOR
                     self.spawns[y][x] = 'enemy'
-                elif ch == 'P':
+                elif ch == 'S':
                     self.terrain[y][x] = constants.TILE_FLOOR
-                    self.spawns[y][x] = 'powerup'
+                    self.spawns[y][x] = 'speed_powerup'
+                elif ch == 'A':
+                    self.terrain[y][x] = constants.TILE_FLOOR
+                    self.spawns[y][x] = 'attack_powerup'
+                elif ch == 'H':
+                    self.terrain[y][x] = constants.TILE_FLOOR
+                    self.spawns[y][x] = 'shield_powerup'
                 elif ch == 'D':
                     self.terrain[y][x] = constants.TILE_FLOOR
                     self.spawns[y][x] = 'door'

@@ -63,9 +63,12 @@ class RoomManager:
                 x, y = gx * constants.TILE_SIZE, gy * constants.TILE_SIZE
                 if tag == 'enemy':
                     self.world.add_enemy(x, y, 50, 50)
-                elif tag == 'powerup':
-                    # eksempel: roter mellom typer
+                elif tag == 'speed_powerup':
                     self.world.add_powerup(Speed_Powerup(x, y, 20))
+                elif tag == 'attack_powerup':
+                    self.world.add_powerup(Attack_Powerup(x, y, 20))
+                elif tag == 'shield_powerup':
+                    self.world.add_powerup(Shield_Powerup(x, y, 20))
                 elif tag == 'door':
                     drect = pygame.Rect(x, y, constants.TILE_SIZE, constants.TILE_SIZE)
                     self.doors.append(Door(drect))
