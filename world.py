@@ -3,7 +3,7 @@ import constants
 from enemy import Enemy
 from particle import Particle
 import random
-import grid_room
+
 class World:
     def __init__(self):
         self.obstacles = []                   # list[pygame.Rect]
@@ -52,7 +52,8 @@ class World:
     def update(self, dt_ms: int, player, camera):
         # Enemies
         for enemy in self.enemies[:]:
-            enemy.move(player, self.obstacles)
+            enemy.move(player, self.obstacles, self.current_room, dt_ms)
+            enemy._apply_separation(self.enemies)
             if enemy.hit_this_frame:
                 self.spawn_hit_particles(enemy.rect.centerx, enemy.rect.centery, n=5)
                 enemy.hit_this_frame = False
@@ -85,8 +86,8 @@ class World:
             return  # ingenting å tegne
 
         room = self.current_room
-        for gy in range(room.h):
-            for gx in range(room.w):
+        for gy in range(room.rows):
+            for gx in range(room.cols):
                 rect = pygame.Rect(
                     gx * constants.TILE_SIZE,
                     gy * constants.TILE_SIZE,

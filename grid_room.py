@@ -1,4 +1,3 @@
-# grid_room.py
 import pygame
 import constants
 
@@ -19,11 +18,11 @@ class GridRoom:
         "#..................#",
         "####################",
         """
-        self.h = len(lines)
-        self.w = max(len(row) for row in lines)
+        self.rows = len(lines)
+        self.cols = max(len(row) for row in lines)
 
-        self.terrain = [[constants.TILE_FLOOR for _ in range(self.w)] for _ in range(self.h)]
-        self.spawns  = [[None for _ in range(self.w)] for _ in range(self.h)]
+        self.terrain = [[constants.TILE_FLOOR for _ in range(self.cols)] for _ in range(self.rows)]
+        self.spawns  = [[None for _ in range(self.cols)] for _ in range(self.rows)]
         self.doors   = []  # list of (gx, gy)
 
         for y, row in enumerate(lines):
@@ -45,9 +44,9 @@ class GridRoom:
                 elif ch == 'D':
                     self.terrain[y][x] = constants.TILE_FLOOR
                     self.spawns[y][x] = 'door'
-
+    
     def is_blocked(self, gx, gy):
-        if gx < 0 or gy < 0 or gx >= self.w or gy >= self.h:
+        if gx < 0 or gy < 0 or gx >= self.cols or gy >= self.rows:
             return True
         return self.terrain[gy][gx] == constants.TILE_WALL
 

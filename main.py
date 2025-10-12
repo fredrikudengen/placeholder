@@ -9,21 +9,17 @@ from room_manager import RoomManager
 pygame.init()
 clock = pygame.time.Clock()
 
-# Skjerm
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 screen_width, screen_height = screen.get_size()
 
-# Spiller & kamera
 player = Player(screen_width // 2, screen_height // 2, 50, 50)
 camera = Camera(screen_width, screen_height)
 
-# Verden + RoomManager
 world = World()
 room_manager = RoomManager(world, player, camera)
 
 run = True
 while run:
-    # events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
@@ -44,10 +40,9 @@ while run:
     # draw
     screen.fill(constants.BLACK)
     world.draw(screen, camera)
-    room_manager.draw(screen)  # tegn dører
+    room_manager.draw(screen)  
     player.draw(screen, camera)
 
-    # debug: vis spillerens angrepshitbox
     if constants.DEBUG_SHOW_HITBOXES and getattr(player, "debug_attack_rect", None):
         if pygame.time.get_ticks() <= getattr(player, "debug_attack_until", 0):
             r = player.debug_attack_rect

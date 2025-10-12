@@ -1,4 +1,3 @@
-# room_manager_grid.py
 import pygame
 import constants
 from grid_room import GridRoom
@@ -35,28 +34,24 @@ class RoomManager:
         for d in self.doors:
             d.draw(screen, self.camera)
 
-    # --- intern ---
     def _go_to_next_room(self):
         nxt = (self.current_index + 1) % len(self.rooms)
         self._load_room(nxt)
 
     def _load_room(self, index):
         self.current_index = index
-        room: GridRoom = self.rooms[index]
+        room = self.rooms[index]
 
-        # 1) World reset
         self.world.clear()
 
-        # 2) Terrain -> obstacles
-        for gy in range(room.h):
-            for gx in range(room.w):
+        for gy in range(room.rows):
+            for gx in range(room.cols):
                 if room.terrain[gy][gx] == constants.TILE_WALL:
                     self.world.add_obstacle(room.tile_rect(gx, gy))
 
-        # 3) Spawns -> objects
         self.doors = []
-        for gy in range(room.h):
-            for gx in range(room.w):
+        for gy in range(room.rows):
+            for gx in range(room.cols):
                 tag = room.spawns[gy][gx]
                 if not tag: 
                     continue
