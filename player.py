@@ -60,6 +60,11 @@ class Player:
             elif name == 'shield_boost':
                 self.health -= 2
             self.buff_timers.pop(name)
+            
+    def _grid_pos(self):
+        """Returner grid-koordinat (gx, gy) basert på TILE_SIZE."""
+        T = constants.TILE_SIZE
+        return (int(self.rect.centerx) // T, int(self.rect.centery) // T)
 
     def draw(self, screen, camera):
         draw_rect = camera.apply(self.rect)

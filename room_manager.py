@@ -57,7 +57,7 @@ class RoomManager:
                     continue
                 x, y = gx * constants.TILE_SIZE, gy * constants.TILE_SIZE
                 if tag == 'enemy':
-                    self.world.add_enemy(x, y, 50, 50)
+                    self.world.add_enemy(x, y)
                 elif tag == 'speed_powerup':
                     self.world.add_powerup(Speed_Powerup(x, y, 20))
                 elif tag == 'attack_powerup':

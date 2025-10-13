@@ -6,10 +6,10 @@ import random
 
 class World:
     def __init__(self):
-        self.obstacles = []                   # list[pygame.Rect]
-        self.enemies: list[Enemy] = []
+        self.obstacles = []
+        self.enemies = []
         self.powerups = []
-        self.particles: list[Particle] = []
+        self.particles = []
 
     # ---------- world content mgmt ----------
     def clear(self):
@@ -39,8 +39,8 @@ class World:
     def add_obstacle(self, rect: pygame.Rect):
         self.obstacles.append(rect)
 
-    def add_enemy(self, x, y, w=50, h=50):
-        self.enemies.append(Enemy(x, y, w, h))
+    def add_enemy(self, x, y):
+        self.enemies.append(Enemy(x, y, 50, 50))
 
     def add_powerup(self, powerup):
         self.powerups.append(powerup)

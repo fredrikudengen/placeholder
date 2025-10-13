@@ -1,18 +1,16 @@
 import itertools
 import random
+import math
 from heapq import heappush, heappop
-from typing import List, Tuple, Optional, Iterable, Any, Dict, Set
 
 import pygame
 from pygame.math import Vector2
+from collections import deque
+
 
 import constants
 
-from typing import TYPE_CHECKING
-
-from grid_room import GridRoom
-
-class Enemy:
+class Enemy():
     """
     Enkel fiende-AI med tilstander, subpiksel-bevegelse, micro-wander og A* (neste-steg).
 
@@ -25,7 +23,7 @@ class Enemy:
     Alt som starter med '_' regnes som internt og kan endres uten varsel.
     """
 
-    def __init__(self, x: int, y: int, width: int, height: int) -> None:
+    def __init__(self, x, y, width, height):
         """
         Opprett fiende.
 
@@ -36,27 +34,28 @@ class Enemy:
         self.rect = pygame.Rect(x, y, width, height)
         # Sann posisjon i float (senter), brukes til all bevegelse
         self.pos: Vector2 = Vector2(self.rect.center)
-
+        
         # Combat & status
         self.health: int = constants.ENEMY_HEALTH
         self.alive: bool = constants.ALIVE
+        self.speed: int = constants.ENEMY_SPEED
         self.hit: bool = False                 # settes utenfra når fienden treffes denne framen
         self.hit_this_frame: bool = False      # (ikke brukt her, men beholdes for kompatibilitet)
-        self.hit_timer: Optional[int] = None   # i-frames slutt-tid (ms tick)
+        self.hit_timer = None   # i-frames slutt-tid (ms tick)
 
         # Tilstandsmaske
         # Mulige states: "idle" | "chase" | "search" | "attack" | "hurt" | "dead"
         self.state: str = "idle"
-        self.last_seen_pos: Optional[Tuple[int, int]] = None  # pikselpos hvor spilleren sist ble sett
-        self.search_started: Optional[int] = None             # ms tick når search startet
-        self.attack_cooldown_until: int = 0                   # ms tick før neste angrep er lov
+        self.last_seen_pos = None  # pikselpos hvor spilleren sist ble sett
+        self.search_started = None             # ms tick når search startet
+        self.attack_cooldown_until = 0                   # ms tick før neste angrep er lov
 
         # Debug-vis av angrepshitbox
-        self.debug_attack_rect: Optional[pygame.Rect] = None
+        self.debug_attack_rect = None
         self.debug_attack_until: int = 0
 
         # Micro-wander (små tilfeldige steg når idle)
-        self.wander_goal_g: Optional[Tuple[int, int]] = None
+        self.wander_goal_g = None
         now = pygame.time.get_ticks()
         self.next_wander_at: int = now + random.randint(1200, 2500)
         self.WANDER_INTERVAL_MS = constants.ENEMY_WANDER_INTERVAL_MS
@@ -64,13 +63,7 @@ class Enemy:
 
     # ------------------------- PUBLIC API -------------------------
 
-    def move(
-        self,
-        player: Any,
-        obstacles: Iterable[pygame.Rect],
-        room: GridRoom,
-        dt_ms: int,
-    ) -> None:
+    def move(self, player, obstacles, room, dt_ms):
         """
         Oppdater fienden én frame: sansing, state-maskin, bevegelse, animasjon.
 
@@ -94,18 +87,16 @@ class Enemy:
             self.hit_timer = now
             self.hit = False
             self.state = "hurt"
-        if self.hit_timer and (now - self.hit_timer > 500):  # 0.5s i-frames
+            
+        if self.hit_timer and (now - self.hit_timer > 500):
             self.hit_timer = None
 
         # Sansing: avstand + line of sight (LOS)
-        player_center: Tuple[int, int] = player.rect.center
-        enemy_center: Tuple[int, int] = (int(round(self.pos.x)), int(round(self.pos.y)))
+        player_center = player.rect.center
+        enemy_center = self.rect.center
         see_player = False
-        if self._dist2(player_center, enemy_center) <= constants.DETECTION_RADIUS * constants.DETECTION_RADIUS:
-            T = constants.TILE_SIZE
-            gx0, gy0 = int(self.pos.x) // T, int(self.pos.y) // T
-            gx1, gy1 = player.rect.centerx // T, player.rect.centery // T
-            if self._has_los(room, gx0, gy0, gx1, gy1):
+        if self._dist2(*player_center, *enemy_center) <= constants.DETECTION_RADIUS * constants.DETECTION_RADIUS:            
+            if self._has_los(room, *self._grid_pos(), *player._grid_pos()):
                 see_player = True
                 self.last_seen_pos = player_center
                 self.search_started = None
@@ -115,42 +106,41 @@ class Enemy:
             if see_player:
                 self.state = "chase"
             else:
-                # Micro-wander: korte, sjeldne forflytninger på grid
+                # Micro-wander
                 if self.wander_goal_g is not None:
                     next_tile_g = self._micro_wander(room, self.wander_goal_g, self.WANDER_RADIUS_TILES)
                     if next_tile_g:
                         target_px = self._center_of_tile(*next_tile_g)
-                        reached = self._move_towards(target_px, obstacles, dt_ms)
+                        wander_end = self._move_towards(target_px, obstacles, dt_ms)
                     else:
-                        reached = True  # ga opp denne runden
+                        wander_end = True  
 
                     gx, gy = self._grid_pos()
-                    if reached or (gx, gy) == self.wander_goal_g:
+                    
+                    if wander_end or (gx, gy) == self.wander_goal_g:
                         self.wander_goal_g = None
                         wait = random.randint(*self.WANDER_INTERVAL_MS)
                         self.next_wander_at = now + wait
+                        
                 elif now >= self.next_wander_at:
                     start_g = self._grid_pos()
                     goal = self._pick_random_free_tile(room, start_g, self.WANDER_RADIUS_TILES)
                     if goal and goal != start_g:
                         self.wander_goal_g = goal
                     else:
-                        # prøv igjen senere hvis vi ikke fant noe
                         wait = random.randint(*self.WANDER_INTERVAL_MS)
                         self.next_wander_at = now + wait
 
         elif self.state == "chase":
-            # mist LOS → over i search (med siste kjente pos), ellers jag direkte
             self.wander_goal_g = None
             if see_player:
                 self._move_towards(player_center, obstacles, dt_ms)
 
-                # Én samlet attack-sjekk
-                if now >= self.attack_cooldown_until and \
-                   self._dist2(player_center, enemy_center) <= constants.ATTACK_RANGE * constants.ATTACK_RANGE:
-                    self.state = "attack"
-                    self.attack_cooldown_until = now + constants.ATTACK_COOLDOWN
-                    self._spawn_debug_attack_rect_towards(player_center)
+                # if now >= self.attack_cooldown_until and \
+                #    self._dist2(player_center, enemy_center) <= constants.ATTACK_RANGE * constants.ATTACK_RANGE:
+                #     self.state = "attack"
+                #     self.attack_cooldown_until = now + constants.ATTACK_COOLDOWN
+                #     self._spawn_debug_attack_rect_towards(player_center)
             else:
                 if self.last_seen_pos:
                     self.state = "search"
@@ -181,14 +171,10 @@ class Enemy:
             else:
                 self.state = "idle"
 
-        elif self.state == "attack":
-            # Plass for faktisk skade/hitbox-kollisjon mot player.rect
-            self.state = "chase" if see_player else "idle"
-
         elif self.state == "dead":
             return
         
-    def draw(self, screen: pygame.Surface, camera: Any) -> None:
+    def draw(self, screen, camera):
         """
         Tegn fienden og (valgfritt) en semitransparent debug-hitbox for angrep.
 
@@ -209,7 +195,6 @@ class Enemy:
 
         pygame.draw.rect(screen, color, draw_rect)
 
-        # valgfri debug-hitbox for angrep
         if constants.DEBUG_SHOW_HITBOXES and self.debug_attack_rect:
             if pygame.time.get_ticks() <= self.debug_attack_until:
                 surf = pygame.Surface(
@@ -223,94 +208,88 @@ class Enemy:
                 self.debug_attack_rect = None
 
     # ------------------------- INTERN LOGIKK -------------------------
-
-    def _dist2(self, a: Tuple[int, int], b: Tuple[int, int]) -> int:
-        """Euklidsk distanse."""
-        dx, dy = a[0] - b[0], a[1] - b[1]
-        return dx * dx + dy * dy
-
-    def _has_los(
-        self,
-        room: GridRoom,
-        x0: int,
-        y0: int,
-        x1: int,
-        y1: int
-    ) -> bool:
+    
+    def _has_los(self, room, enemy_x, enemy_y, player_x, player_y):
         """
-        Line-of-sight på GRID ved Bresenham.
-        room.is_blocked(gx, gy) må finnes.
-        (x0,y0) og (x1,y1) er grid-koordinater (ikke piksler).
+        Line-of-sight på GRID (Bresenham).
+        Alle koordinater er grid (tiles), ikke piksler.
+        Returnerer True hvis linjen fra (enemy_x, enemy_y) til (player_x, player_y)
+        ikke passerer noen blokkerte tiles.
         """
-        dx = abs(x1 - x0)
-        dy = -abs(y1 - y0)
-        sx = 1 if x0 < x1 else -1
-        sy = 1 if y0 < y1 else -1
-        err = dx + dy  # 'feil'
+        dx = abs(player_x - enemy_x)
+        dy = -abs(player_y - enemy_y)
+        x_steps = 1 if enemy_x < player_x else -1
+        y_steps = 1 if enemy_y < player_y else -1
+        err = dx + dy
 
-        x, y = x0, y0
+        x, y = enemy_x, enemy_y
         while True:
-            # hopp gjerne over startcella hvis du ikke vil at egen celle skal blokkere:
-            if (x, y) != (x0, y0) and room.is_blocked(x, y):
+            if (x, y) != (enemy_x, enemy_y) and room.is_blocked(x, y):
                 return False
-            if x == x1 and y == y1:
-                break
+            if x == player_x and y == player_y:
+                return True 
             e2 = 2 * err
             if e2 >= dy:
                 err += dy
-                x += sx
+                x += x_steps
             if e2 <= dx:
                 err += dx
-                y += sy
-        return True
-
+                y += y_steps
+                
+    def _grid_pos(self):
+        """Returner grid-koordinat (gx, gy) basert på TILE_SIZE."""
+        T = constants.TILE_SIZE
+        return (int(self.pos.x) // T, int(self.pos.y) // T)
 
     def _sync_rect_from_pos(self) -> None:
         """Synkroniser heltalls-rect fra float-posisjon (senter)."""
         self.rect.centerx = int(round(self.pos.x))
         self.rect.centery = int(round(self.pos.y))
 
-    def _slide_move(
-        self,
-        vx: float,
-        vy: float,
-        dt_ms: int,
-        obstacles: Iterable[pygame.Rect]
-    ) -> None:
-        """
-        Bevegelse med subpiksel-presisjon og 'slide' langs vegger.
+    def _dist2(self, a1: int, a2: int, b1: int, b2: int) -> int:
+        """Euklidisk distanse."""
+        dx, dy = a1 - b1, a2 - b2
+        return dx * dx + dy * dy
 
-        Flytt X, sjekk kollisjon (reverter hvis treff), deretter Y.
+    def _center_of_tile(self, gx, gy):
+        """Returner piksel-senteret til grid-ruten (gx, gy)."""
+        T = constants.TILE_SIZE
+        return (gx * T + T // 2, gy * T + T // 2)
 
-        Args:
-            vx, vy: hastighet i piksler/sekund
-            dt_ms: millisekunder siden forrige frame
-            obstacles: vegger for kollisjon
-        """
+    def check_collision(self, obstacles):
+        """Returner True hvis self.rect kolliderer med et av obstacles."""
+        for obstacle in obstacles:
+            if self.rect.colliderect(obstacle):
+                return True
+        return False
+
+    def _slide_move(self, vx, vy, dt_ms, obstacles):
         dt = dt_ms / 1000.0
+        dx_total = vx * dt
+        dy_total = vy * dt
 
-        # X-aksen
-        if vx:
-            self.pos.x += vx * dt
-            self._sync_rect_from_pos()
-            if self.check_collision(obstacles):
-                self.pos.x -= vx * dt
+        steps = max(1, int(max(abs(dx_total), abs(dy_total)) // 4) )  # maks ~4 px per steg
+        sdx = dx_total / steps
+        sdy = dy_total / steps
+
+        for _ in range(steps):
+            if sdx:
+                self.pos.x += sdx
                 self._sync_rect_from_pos()
+                if self.check_collision(obstacles):
+                    self.pos.x -= sdx
+                    self._sync_rect_from_pos()
+                    # ev. snap + EPS her
 
-        # Y-aksen
-        if vy:
-            self.pos.y += vy * dt
-            self._sync_rect_from_pos()
-            if self.check_collision(obstacles):
-                self.pos.y -= vy * dt
+            if sdy:
+                self.pos.y += sdy
                 self._sync_rect_from_pos()
+                if self.check_collision(obstacles):
+                    self.pos.y -= sdy
+                    self._sync_rect_from_pos()
+                    # ev. snap + EPS her
 
-    def _move_towards(
-        self,
-        target_px: Tuple[float, float],
-        obstacles: Iterable[pygame.Rect],
-        dt_ms: int
-    ) -> bool:
+    def _move_towards(self, target_px, obstacles, dt_ms):
         """
         Gå mot en piksel-posisjon med normalisert fart.
 
@@ -321,16 +300,10 @@ class Enemy:
         dist = direction.length()
         if dist > 1e-6:
             direction /= dist  # normaliser
-            speed = constants.ENEMY_SPEED  # px/s
-            self._slide_move(direction.x * speed, direction.y * speed, dt_ms, obstacles)
-        return self._dist2((int(self.pos.x), int(self.pos.y)), (int(target_px[0]), int(target_px[1]))) <= (24 * 24)
+            self._slide_move(direction.x * self.speed, direction.y * self.speed, dt_ms, obstacles)
+        return self._dist2(int(self.pos.x), int(self.pos.y), int(target_px[0]), int(target_px[1])) <= (24 * 24)
     
-    def _apply_separation(
-        self,
-        others: Iterable["Enemy"],
-        strength: float = 0.4,
-        radius: int = 40
-    ) -> None:
+    def _apply_separation(self, others):
         """
         Myk, lokal dytting bort fra andre fiender for å redusere overlapping.
 
@@ -339,6 +312,8 @@ class Enemy:
             strength: skalering av dytt (0..1 typisk)
             radius: påvirkningsradius (px)
         """
+        strength=0.08
+        radius=64
         self_x, self_y = self.pos.x, self.pos.y
         pushx = pushy = 0.0
         r2 = float(radius * radius)
@@ -361,28 +336,13 @@ class Enemy:
 
     # ---- Grid-hjelpere ----
 
-    def _grid_pos(self) -> Tuple[int, int]:
-        """Returner nåværende grid-posisjon (gx, gy) basert på TILE_SIZE og self.pos."""
-        T = constants.TILE_SIZE
-        return (int(self.pos.x) // T, int(self.pos.y) // T)
-
-    def _center_of_tile(self, gx: int, gy: int) -> Tuple[int, int]:
-        """Returner piksel-senteret til grid-ruten (gx, gy)."""
-        T = constants.TILE_SIZE
-        return (gx * T + T // 2, gy * T + T // 2)
-
-    def _pick_random_free_tile(
-        self,
-        room: "GridRoom",
-        center_g: Tuple[int, int],
-        radius: int,
-        tries: int = 24
-    ) -> Optional[Tuple[int, int]]:
+    def _pick_random_free_tile(self, room, center_g, radius):
         """
         Velg en tilfeldig ledig grid-rute innenfor radius.
 
         Returnerer (gx, gy) eller None om vi ikke fant noe på 'tries' forsøk.
         """
+        tries = 7
         cx, cy = center_g
         for _ in range(tries):
             nx = cx + random.randint(-radius, radius)
@@ -391,26 +351,19 @@ class Enemy:
                 return (nx, ny)
         return None
 
-    def _micro_wander(
-        self,
-        room: "GridRoom",
-        goal_g: Tuple[int, int],
-        max_depth: int
-    ) -> Optional[Tuple[int, int]]:
+    def _micro_wander(self, room, goal_g, max_depth):
         """
         BFS: finn NESTE grid-steg fra nåværende pos mot goal_g (billig og robust).
 
         Brukes til micro-wander. For større kart: bruk A*.
         """
-        from collections import deque
-
         start = self._grid_pos()
         if start == goal_g:
             return None
 
         q = deque([start])
-        came_from: Dict[Tuple[int, int], Optional[Tuple[int, int]]] = {start: None}
-        depth: Dict[Tuple[int, int], int] = {start: 0}
+        came_from = {start: None}
+        depth = {start: 0}
         dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)]
 
         while q:
@@ -439,40 +392,49 @@ class Enemy:
 
         return None
 
-    def _astar_next_step(
-        self,
-        room: "GridRoom",
-        goal_g: Tuple[int, int],
-        max_expansions: int = 512
-    ) -> Optional[Tuple[int, int]]:
+    def _astar_next_step(self, room, goal_g, max_expansions):
         """
-        A*: finn NESTE grid-steg fra nåværende pos mot goal_g (raskere enn BFS på store kart).
-
+        A*: finn NESTE grid-steg fra nåværende pos mot goal_g (4-retninger).
         Returnerer (gx, gy) for neste steg, eller None hvis ingen rute.
         """
         start = self._grid_pos()
         if start == goal_g:
             return None
+        # tidlig ut: ulovlige mål
+        if room.is_blocked(*goal_g) or room.is_blocked(*start):
+            return None
 
-        def h(a: Tuple[int, int], b: Tuple[int, int]) -> int:
-            # Manhattan-heuristikk (4-retninger)
+        def h(a, b):
             return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
-        openh: List[Tuple[int, int, Tuple[int, int]]] = []
-        counter = itertools.count()  # stabil tie-breaker for heap
-        g: Dict[Tuple[int, int], int] = {start: 0}
-        came: Dict[Tuple[int, int], Optional[Tuple[int, int]]] = {start: None}
-        heappush(openh, (h(start, goal_g), next(counter), start))
+        openh = []
+        counter = itertools.count()
+        g = {start: 0}
+        came = {start: None}
+        # f = g + h + liten h-vekt for penere tie-break
+        f0 = 0 + h(start, goal_g) + 1e-6 * h(start, goal_g)
+        heappush(openh, (f0, next(counter), start))
 
+        closed = set()
         expansions = 0
-        dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        dirs = [(1,0),(-1,0),(0,1),(0,-1)]
+
+        # track best-so-far for fallback
+        best_node = start
+        best_f = f0
 
         while openh and expansions < max_expansions:
-            _, _, cur = heappop(openh)
+            fcur, _, cur = heappop(openh)
+            if cur in closed:
+                continue
+            closed.add(cur)
             expansions += 1
 
+            if fcur < best_f:
+                best_f, best_node = fcur, cur
+
+            # reconstruct hvis vi nådde mål
             if cur == goal_g:
-                # første steg fra start
                 node = cur
                 prev = came[node]
                 while prev and prev != start:
@@ -485,18 +447,39 @@ class Enemy:
                 nx, ny = cx + dx, cy + dy
                 if room.is_blocked(nx, ny):
                     continue
+
+                # short-circuit: nabo er mål → finn første steg og returner
+                if (nx, ny) == goal_g:
+                    # første steg fra start ligger i 'cur' hvis start nabo er cur, ellers gå ett steg tilbake
+                    node = (nx, ny)
+                    prev = cur
+                    while prev and prev != start:
+                        node = prev
+                        prev = came[prev]
+                    return node
+
                 ng = g[cur] + 1
-                if ng < g.get((nx, ny), 1_000_000_000):
+                if ng < g.get((nx, ny), math.inf):
                     g[(nx, ny)] = ng
                     came[(nx, ny)] = cur
-                    f = ng + h((nx, ny), goal_g)
+                    fh = ng + h((nx, ny), goal_g)
+                    f = fh + 1e-6 * h((nx, ny), goal_g)
                     heappush(openh, (f, next(counter), (nx, ny)))
+
+        # Fallback: gå mot best-so-far hvis den ikke er start
+        if best_node != start:
+            node = best_node
+            prev = came[node]
+            while prev and prev != start:
+                node = prev
+                prev = came[node]
+            return node
 
         return None
 
     # ------------------------- ENKLE HJELPERE -------------------------
 
-    def _spawn_debug_attack_rect_towards(self, target_px: Tuple[int, int]) -> None:
+    def _spawn_debug_attack_rect_towards(self, target_px):
         """Lag en enkel angreps-rect i retning mål for visuell debugging."""
         ex, ey, ew, eh = self.rect
         ecx, ecy = self.rect.center
@@ -513,10 +496,3 @@ class Enemy:
         if constants.DEBUG_SHOW_HITBOXES:
             self.debug_attack_rect = atk
             self.debug_attack_until = pygame.time.get_ticks() + constants.DEBUG_HITBOX_MS
-
-    def check_collision(self, obstacles: Iterable[pygame.Rect]) -> bool:
-        """Returner True hvis self.rect kolliderer med et av obstacles."""
-        for obstacle in obstacles:
-            if self.rect.colliderect(obstacle):
-                return True
-        return False
