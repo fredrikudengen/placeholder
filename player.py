@@ -2,8 +2,8 @@ import pygame
 import constants
 
 class Player:
-    def __init__(self, x, y, width, height):
-        self.rect = pygame.Rect(x, y, width, height)
+    def __init__(self, x, y,):
+        self.rect = pygame.Rect(x, y, *constants.PLAYER_SIZE)
         self.color = constants.PLAYER_COLOR
         self.speed = constants.PLAYER_SPEED
         self.health = constants.PLAYER_HEALTH

@@ -23,7 +23,7 @@ class Enemy():
     Alt som starter med '_' regnes som internt og kan endres uten varsel.
     """
 
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y):
         """
         Opprett fiende.
 
@@ -31,7 +31,7 @@ class Enemy():
             x, y: startposisjon (piksel, øverste-venstre i rect)
             width, height: størrelse på collider/tegning
         """
-        self.rect = pygame.Rect(x, y, width, height)
+        self.rect = pygame.Rect(x, y, *constants.ENEMY_SIZE)
         # Sann posisjon i float (senter), brukes til all bevegelse
         self.pos = Vector2(self.rect.center)
         

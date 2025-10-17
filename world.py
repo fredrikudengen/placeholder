@@ -40,7 +40,7 @@ class World:
         self.obstacles.append(rect)
 
     def add_enemy(self, x, y):
-        self.enemies.append(Enemy(x, y, 50, 50))
+        self.enemies.append(Enemy(x, y))
 
     def add_powerup(self, powerup):
         self.powerups.append(powerup)

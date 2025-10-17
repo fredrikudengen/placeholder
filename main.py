@@ -12,7 +12,7 @@ clock = pygame.time.Clock()
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 screen_width, screen_height = screen.get_size()
 
-player = Player(screen_width // 2, screen_height // 2, 50, 50)
+player = Player(screen_width // 2, screen_height // 2)
 camera = Camera(screen_width, screen_height)
 
 world = World()
@@ -35,7 +35,7 @@ while run:
     world.update(dt_ms, player, camera)
     
     if player.health <= 0:
-        pygame.quit()
+        run = False
 
     # etter verden – dørlogikk og rombytte
     room_manager.update()
