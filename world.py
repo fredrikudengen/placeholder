@@ -61,14 +61,6 @@ class World:
                 self.spawn_hit_particles(enemy.rect.centerx, enemy.rect.centery, n=10)
                 self.enemies.remove(enemy)
 
-        # Kontakt-skade (enkel)
-        for e in self.enemies:
-            if e.rect.colliderect(player.rect):
-                player.health -= 1
-                if player.health <= 0:
-                    player.alive = False
-                break
-
         # Powerups
         for pu in self.powerups[:]:
             if player.rect.colliderect(pu.rect):

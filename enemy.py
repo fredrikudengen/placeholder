@@ -33,26 +33,27 @@ class Enemy():
         """
         self.rect = pygame.Rect(x, y, width, height)
         # Sann posisjon i float (senter), brukes til all bevegelse
-        self.pos: Vector2 = Vector2(self.rect.center)
+        self.pos = Vector2(self.rect.center)
         
         # Combat & status
-        self.health: int = constants.ENEMY_HEALTH
-        self.alive: bool = constants.ALIVE
-        self.speed: int = constants.ENEMY_SPEED
-        self.hit: bool = False                 # settes utenfra når fienden treffes denne framen
-        self.hit_this_frame: bool = False      # (ikke brukt her, men beholdes for kompatibilitet)
+        self.health = constants.ENEMY_HEALTH
+        self.alive = constants.ALIVE
+        self.speed = constants.ENEMY_SPEED
+        self.dps = constants.ENEMY_DPS
+        self.hit = False                 # settes utenfra når fienden treffes denne framen
+        self.hit_this_frame = False      # (ikke brukt her, men beholdes for kompatibilitet)
         self.hit_timer = None   # i-frames slutt-tid (ms tick)
 
         # Tilstandsmaske
         # Mulige states: "idle" | "chase" | "search" | "attack" | "hurt" | "dead"
-        self.state: str = "idle"
+        self.state = "idle"
         self.last_seen_pos = None  # pikselpos hvor spilleren sist ble sett
         self.search_started = None             # ms tick når search startet
         self.attack_cooldown_until = 0                   # ms tick før neste angrep er lov
 
         # Debug-vis av angrepshitbox
         self.debug_attack_rect = None
-        self.debug_attack_until: int = 0
+        self.debug_attack_until = 0
 
         # Micro-wander (små tilfeldige steg når idle)
         self.wander_goal_g = None
@@ -135,18 +136,25 @@ class Enemy():
             self.wander_goal_g = None
             if see_player:
                 self._move_towards(player_center, obstacles, dt_ms)
-
-                # if now >= self.attack_cooldown_until and \
-                #    self._dist2(player_center, enemy_center) <= constants.ATTACK_RANGE * constants.ATTACK_RANGE:
-                #     self.state = "attack"
-                #     self.attack_cooldown_until = now + constants.ATTACK_COOLDOWN
-                #     self._spawn_debug_attack_rect_towards(player_center)
+                
+                if now >= self.attack_cooldown_until and self._dist2(*player_center, *enemy_center) <= constants.ATTACK_RANGE * constants.ATTACK_RANGE:
+                    self.state = "attack"
+                    self.attack_cooldown_until = now + constants.ATTACK_COOLDOWN
+                    self._spawn_debug_attack_rect_towards(player_center)
             else:
                 if self.last_seen_pos:
                     self.state = "search"
                     self.search_started = now
                 else:
                     self.state = "idle"
+                    
+        if self.state == "attack":
+            player.health -= self.dps
+            print("Enemy attacks")
+            print(f"DPS: {self.dps}")
+            print(f"Player health: {player.health}")
+            self.state = "chase"
+            self.attack_cooldown_until = now + constants.ATTACK_COOLDOWN
 
         elif self.state == "search":
             # Gå mot siste kjente posisjon via grid (A* neste-steg)
@@ -167,7 +175,7 @@ class Enemy():
                 if reached or timedout:
                     self.state = "idle"
                     self.last_seen_pos = None
-                    self.search_started = None
+                    self.search_started = None   
             else:
                 self.state = "idle"
 

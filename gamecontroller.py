@@ -29,15 +29,15 @@ def player_input(player, obstacles, enemies):
         if _collides(player, obstacles): player.rect.x = old_x
 
     # --- cooldown slutt? ---
-    if player.attack_timer and (now - player.attack_timer > 500):
-        player.attack_timer = None
+    if now > player.attack_cooldown:
         player.playerAttack = False
 
     # --- start nytt angrep ---
-    if not player.attack_timer:
+    if not player.playerAttack:
         direction = _read_attack_direction(keys)
         if direction:
             attack_rect = _make_attack_rect(player, direction)
+            player.playerAttack = True
 
             # treff alle fiender
             for enemy in enemies:
@@ -45,10 +45,9 @@ def player_input(player, obstacles, enemies):
                     enemy.health -= player.dps
                     enemy.hit = True
                     enemy.hit_this_frame = True
-                    player.playerAttack = True
-
+                    
             # start cooldown
-            player.attack_timer = now
+            player.attack_cooldown = now + constants.PLAYER_ATTACK_COOLDOWN
 
             # DEBUG: lagre siste attack rect til tegning
             if constants.DEBUG_SHOW_HITBOXES:

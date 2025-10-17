@@ -11,7 +11,7 @@ class Player:
         self.alive = constants.ALIVE
 
         # Angrep / debug
-        self.attack_timer = None
+        self.attack_cooldown = constants.PLAYER_ATTACK_COOLDOWN
         self.playerAttack = False
         self.debug_attack_rect = None
         self.debug_attack_until = 0

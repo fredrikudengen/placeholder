@@ -33,6 +33,9 @@ while run:
 
     dt_ms = clock.get_time()
     world.update(dt_ms, player, camera)
+    
+    if player.health <= 0:
+        pygame.quit()
 
     # etter verden – dørlogikk og rombytte
     room_manager.update()
