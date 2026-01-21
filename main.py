@@ -28,7 +28,7 @@ while run:
 
     # update
     player.update_buffs()
-    player_input(player, world.obstacles, world.enemies)
+    player_input(player, world.obstacles, world, camera)
     camera.update(player.rect)
 
     dt_ms = clock.get_time()
@@ -45,16 +45,6 @@ while run:
     world.draw(screen, camera)
     room_manager.draw(screen)  
     player.draw(screen, camera)
-
-    if constants.DEBUG_SHOW_HITBOXES and getattr(player, "debug_attack_rect", None):
-        if pygame.time.get_ticks() <= getattr(player, "debug_attack_until", 0):
-            r = player.debug_attack_rect
-            surf = pygame.Surface((r.width, r.height), pygame.SRCALPHA)
-            surf.fill(constants.HITBOX_COLOR_RGBA)
-            ar = camera.apply(r)
-            screen.blit(surf, (ar.x, ar.y))
-        else:
-            player.debug_attack_rect = None
 
     pygame.display.flip()
     clock.tick(60)

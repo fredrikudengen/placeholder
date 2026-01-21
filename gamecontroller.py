@@ -1,9 +1,11 @@
 import pygame
 import constants
 
-def player_input(player, obstacles, enemies):
+def player_input(player, obstacles, world, camera):
     keys = pygame.key.get_pressed()
     now = pygame.time.get_ticks()
+    mouse_pos_screen = pygame.mouse.get_pos()
+    mouse_pos_world = camera.screen_to_world(mouse_pos_screen)
 
     # init debug felter hvis de ikke finnes
     if not hasattr(player, "attack_timer"):
@@ -32,27 +34,21 @@ def player_input(player, obstacles, enemies):
     if now > player.attack_cooldown:
         player.playerAttack = False
 
-    # --- start nytt angrep ---
-    if not player.playerAttack:
-        direction = _read_attack_direction(keys)
-        if direction:
-            attack_rect = _make_attack_rect(player, direction)
-            player.playerAttack = True
+    # --- skyting ---
+    mouse_buttons = pygame.mouse.get_pressed()
 
-            # treff alle fiender
-            for enemy in enemies:
-                if attack_rect.colliderect(enemy.rect):
-                    enemy.health -= player.dps
-                    enemy.hit = True
-                    enemy.hit_this_frame = True
-                    
-            # start cooldown
+    if mouse_buttons[0] and now >= player.attack_cooldown:
+        direction = pygame.math.Vector2(
+            mouse_pos_world[0] - player.rect.centerx,
+            mouse_pos_world[1] - player.rect.centery
+        )
+    
+        if direction.length_squared() > 0:
+            from projectile import Projectile
+            proj = Projectile(player.rect.center, direction)
+            world.projectiles.append(proj)
+
             player.attack_cooldown = now + constants.PLAYER_ATTACK_COOLDOWN
-
-            # DEBUG: lagre siste attack rect til tegning
-            if constants.DEBUG_SHOW_HITBOXES:
-                player.debug_attack_rect = attack_rect
-                player.debug_attack_until = now + constants.DEBUG_HITBOX_MS
 
     # død?
     if player.health <= 0:
@@ -63,18 +59,3 @@ def _collides(player, obstacles):
         if player.rect.colliderect(obs):
             return True
     return False
-
-def _read_attack_direction(keys):
-    if keys[pygame.K_UP]:    return "up"
-    if keys[pygame.K_DOWN]:  return "down"
-    if keys[pygame.K_LEFT]:  return "left"
-    if keys[pygame.K_RIGHT]: return "right"
-    return None
-
-def _make_attack_rect(player, direction):
-    px, py, pw, ph = player.rect
-    if direction == "up":    return pygame.Rect(px, py - ph, pw, ph)
-    if direction == "down":  return pygame.Rect(px, py + ph, pw, ph)
-    if direction == "left":  return pygame.Rect(px - pw, py, pw, ph)
-    if direction == "right": return pygame.Rect(px + pw, py, pw, ph)
-    return pygame.Rect(px, py, pw, ph)

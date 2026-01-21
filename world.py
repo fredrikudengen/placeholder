@@ -10,6 +10,7 @@ class World:
         self.enemies = []
         self.powerups = []
         self.particles = []
+        self.projectiles = []
 
     # ---------- world content mgmt ----------
     def clear(self):
@@ -17,6 +18,7 @@ class World:
         self.enemies.clear()
         self.powerups.clear()
         self.particles.clear()
+        self.projectiles.clear()
 
     def load_blueprint(self, bp: dict):
         """
@@ -61,6 +63,20 @@ class World:
                 self.spawn_hit_particles(enemy.rect.centerx, enemy.rect.centery, n=10)
                 self.enemies.remove(enemy)
 
+        for projectile in self.projectiles[:]:
+            projectile.update(dt_ms, self.obstacles)
+
+            # treff fiender
+            for enemy in self.enemies:
+                if projectile.rect.colliderect(enemy.rect):
+                    enemy.health -= projectile.damage
+                    enemy.hit_this_frame = True
+                    projectile.alive = False
+                    break
+            
+            if not projectile.alive:
+                self.projectiles.remove(projectile)
+
         # Powerups
         for pu in self.powerups[:]:
             if player.rect.colliderect(pu.rect):
@@ -103,6 +119,10 @@ class World:
         # Enemies
         for e in self.enemies:
             e.draw(screen, camera)
+        
+        # Projectiles
+        for projectile in self.projectiles:
+            projectile.draw(screen, camera)
 
         # Particles
         for p in self.particles:

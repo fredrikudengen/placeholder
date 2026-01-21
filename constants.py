@@ -17,6 +17,10 @@ PLAYER_SIZE    = (50, 50)
 ALIVE          = True
 PLAYER_ATTACK_COOLDOWN = 500
 
+# gameplay - projectile
+PROJECTILE_DAMAGE = 1
+PROJECTILE_SPEED = 600
+
 # gameplay – enemy
 ENEMY_SPEED        = 140
 ENEMY_DPS          = 1

@@ -11,5 +11,12 @@ class Camera:
         self.offset.y = target_rect.centery - self.sh // 2
 
     def apply(self, rect):
-        # Returnerer en copy av rect flyttet til skjerm
+        # World -> screen
         return rect.move(-self.offset.x, -self.offset.y)
+
+    def screen_to_world(self, pos):
+        # Screen -> world
+        return pygame.Vector2(
+            pos[0] + self.offset.x,
+            pos[1] + self.offset.y
+        )
