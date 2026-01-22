@@ -56,9 +56,9 @@ class World:
         for enemy in self.enemies[:]:
             enemy.move(player, self.obstacles, self.current_room, dt_ms)
             enemy._apply_separation(self.enemies)
-            if enemy.hit_this_frame:
+            if enemy.hit:
                 self.spawn_hit_particles(enemy.rect.centerx, enemy.rect.centery, n=5)
-                enemy.hit_this_frame = False
+                enemy.hit = False
             if not enemy.alive:
                 self.spawn_hit_particles(enemy.rect.centerx, enemy.rect.centery, n=10)
                 self.enemies.remove(enemy)
@@ -70,7 +70,7 @@ class World:
             for enemy in self.enemies:
                 if projectile.rect.colliderect(enemy.rect):
                     enemy.health -= projectile.damage
-                    enemy.hit_this_frame = True
+                    enemy.hit = True
                     projectile.alive = False
                     break
             

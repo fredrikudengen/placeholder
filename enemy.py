@@ -41,7 +41,6 @@ class Enemy():
         self.speed = constants.ENEMY_SPEED
         self.dps = constants.ENEMY_DPS
         self.hit = False                 # settes utenfra når fienden treffes denne framen
-        self.hit_this_frame = False      # (ikke brukt her, men beholdes for kompatibilitet)
         self.hit_timer = None   # i-frames slutt-tid (ms tick)
 
         # Tilstandsmaske
@@ -87,8 +86,14 @@ class Enemy():
         if self.hit:
             self.hit_timer = now
             self.hit = False
-            self.state = "hurt"
-            
+
+            # Å bli truffet = vi vet hvor spilleren er
+            self.last_seen_pos = player.rect.center
+            self.search_started = now
+
+            self.state = "search"
+        
+        print(self.hit)
         if self.hit_timer and (now - self.hit_timer > 500):
             self.hit_timer = None
 
@@ -150,9 +155,6 @@ class Enemy():
                     
         if self.state == "attack":
             player.health -= self.dps
-            print("Enemy attacks")
-            print(f"DPS: {self.dps}")
-            print(f"Player health: {player.health}")
             self.state = "chase"
             self.attack_cooldown_until = now + constants.ATTACK_COOLDOWN
 
