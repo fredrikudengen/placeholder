@@ -1,5 +1,6 @@
 import pygame
 import constants
+import copy
 
 CHAR_TO_TILE = {
     '.': constants.TILE_FLOOR,
@@ -23,6 +24,7 @@ class GridRoom:
 
         self.terrain = [[constants.TILE_FLOOR for _ in range(self.cols)] for _ in range(self.rows)]
         self.spawns  = [[None for _ in range(self.cols)] for _ in range(self.rows)]
+
         self.doors   = []  # list of (gx, gy)
 
         for y, row in enumerate(lines):
@@ -44,6 +46,8 @@ class GridRoom:
                 elif ch == 'D':
                     self.terrain[y][x] = constants.TILE_FLOOR
                     self.spawns[y][x] = 'door'
+
+        self._original_spawns = copy.deepcopy(self.spawns)
     
     def is_blocked(self, gx, gy):
         if gx < 0 or gy < 0 or gx >= self.cols or gy >= self.rows:
@@ -53,3 +57,8 @@ class GridRoom:
     def tile_rect(self, gx, gy):
         x, y = gx * constants.TILE_SIZE, gy * constants.TILE_SIZE
         return pygame.Rect(x, y, constants.TILE_SIZE, constants.TILE_SIZE)
+    
+    def reset_spawns(self):
+        self.spawns = copy.deepcopy(self._original_spawns)
+
+

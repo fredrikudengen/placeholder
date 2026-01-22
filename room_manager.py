@@ -4,6 +4,9 @@ from grid_room import GridRoom
 from door import Door
 from power_up import Speed_Powerup, Attack_Powerup, Shield_Powerup
 from enemy import Enemy
+import random
+import copy
+
 
 class RoomManager:
     def __init__(self, world, player, camera):
@@ -12,11 +15,11 @@ class RoomManager:
         self.camera = camera
 
         self.rooms = []
-        self.current_index = 0
         self.doors = []
 
         self._build_demo_grid_rooms()
-        self._load_room(0)
+        self.current_room_type = "start"
+        self._load_room(self.rooms[self.current_room_type][0])
 
     def update(self):
         cleared = (len(self.world.enemies) == 0)
@@ -35,14 +38,23 @@ class RoomManager:
             d.draw(screen, self.camera)
 
     def _go_to_next_room(self):
-        nxt = (self.current_index + 1) % len(self.rooms)
+        if self.current_room_type == "reward":
+            candidates = self.rooms["combat"]
+        else:
+            candidates = (
+                self.rooms["reward"]
+                if random.random() < 0.25
+                else self.rooms["combat"]
+            )
+
+        nxt = random.choice(candidates)
         self._load_room(nxt)
 
-    def _load_room(self, index):
-        self.current_index = index
-        room = self.rooms[index]
 
+    def _load_room(self, room):
+        self.current_room_type = room
         self.world.clear()
+        room.reset_spawns()
 
         for gy in range(room.rows):
             for gx in range(room.cols):
@@ -132,4 +144,22 @@ class RoomManager:
             "#.....................#",
             "########################",
         ])
-        self.rooms = [r1, r2, r3]
+        r_start = GridRoom([
+            "#####",
+            "#...#",
+            "#...#",
+            "#...#",
+            "##D##"
+        ])
+        r_reward = GridRoom([
+            ".......",
+            ".......",
+            ".......",
+            "...D..."
+        ])
+        self.rooms = {
+                "combat": [r1, r2, r3],
+                "start":  [r_start],
+                "reward": [r_reward]
+                }
+
