@@ -93,7 +93,6 @@ class Enemy():
 
             self.state = "search"
         
-        print(self.hit)
         if self.hit_timer and (now - self.hit_timer > 500):
             self.hit_timer = None
 
@@ -144,7 +143,7 @@ class Enemy():
                 
                 if now >= self.attack_cooldown_until and self._dist2(*player_center, *enemy_center) <= constants.ATTACK_RANGE * constants.ATTACK_RANGE:
                     self.state = "attack"
-                    self.attack_cooldown_until = now + constants.ATTACK_COOLDOWN
+                    self.attack_cooldown_until = now + constants.ENEMY_ATTACK_COOLDOWN
                     self._spawn_debug_attack_rect_towards(player_center)
             else:
                 if self.last_seen_pos:
@@ -156,7 +155,7 @@ class Enemy():
         if self.state == "attack":
             player.health -= self.dps
             self.state = "chase"
-            self.attack_cooldown_until = now + constants.ATTACK_COOLDOWN
+            self.attack_cooldown_until = now + constants.ENEMY_ATTACK_COOLDOWN
 
         elif self.state == "search":
             # Gå mot siste kjente posisjon via grid (A* neste-steg)

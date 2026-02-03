@@ -29,7 +29,7 @@ DETECTION_RADIUS   = 550                  # px
 LOSE_SIGHT_TIME    = 2400                 # ms i search før idle
 ATTACK_RANGE       = 40                   # px (nærkamp)
 ENEMY_SIZE         = (50, 50)
-ENEMY_ATTACK_COOLDOWN    = 1500           # ms
+ENEMY_ATTACK_COOLDOWN    = 500            # ms
 ENEMY_WANDER_INTERVAL_MS = (1200, 2500)   # (min, max) ms pause mellom impulser
 ENEMY_WANDER_RADIUS_TILES = 3             # hvor langt fra nåværende grid-rute
 
