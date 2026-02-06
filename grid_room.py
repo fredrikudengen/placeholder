@@ -25,7 +25,7 @@ class GridRoom:
         self.terrain = [[constants.TILE_FLOOR for _ in range(self.cols)] for _ in range(self.rows)]
         self.spawns  = [[None for _ in range(self.cols)] for _ in range(self.rows)]
 
-        self.doors   = []  # list of (gx, gy)
+        self.doors   = []  # liste av dict/tuple
 
         for y, row in enumerate(lines):
             for x, ch in enumerate(row):
