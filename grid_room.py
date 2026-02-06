@@ -46,6 +46,7 @@ class GridRoom:
                 elif ch == 'D':
                     self.terrain[y][x] = constants.TILE_FLOOR
                     self.spawns[y][x] = 'door'
+                    self.doors.append((x,y))
 
         self._original_spawns = copy.deepcopy(self.spawns)
     

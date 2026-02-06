@@ -33,6 +33,9 @@ ENEMY_ATTACK_COOLDOWN    = 500            # ms
 ENEMY_WANDER_INTERVAL_MS = (1200, 2500)   # (min, max) ms pause mellom impulser
 ENEMY_WANDER_RADIUS_TILES = 3             # hvor langt fra nåværende grid-rute
 
+# gameplay - door
+OPPOSITE = {"N":"S","S":"N","E":"W","W":"E"} # motsatt retning av der man kom inn
+
 # buffs (varighets-tabell)
 BUFF_DURATIONS = {
     'speed_boost':  5000,  # 5s
